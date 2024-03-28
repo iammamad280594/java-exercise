@@ -1,58 +1,185 @@
 package com.adepuu.exercises.session8;
 
-import java.util.Scanner;
+import java.util.*;
 
-public class App {
-    /**
-     * Manages user registration, login, and task management for the To-Do List application.
-     * <p>
-     * This function enables users to register, log in, and manage their tasks through the console.
-     * It provides a clear and concise menu with options to add a task, view tasks, delete a task, or log out.
-     * The system handles user input errors gracefully, providing clear feedback and prompting for correct input.
-     * </p>
-     * <br/>
-     * <h3>User Registration and Login:</h3>
-     * <ul>
-     *     <li>Given a new user, when they input their desired login and password through the console, then the system should create a new account and confirm successful account creation.</li>
-     *     <li>Given an existing user, when they input their login and password through the console, then the system should authenticate the user and grant access to the to-do list.</li>
-     * </ul>
-     *
-     * <h3>Task Management:</h3>
-     * <ul>
-     *     <li>Given a logged-in user, when they input a new task through the console, then the system should add the task to their to-do list and confirm the task has been added.</li>
-     *     <li>Given a logged-in user, when they view their to-do list through the console, then the system should display all tasks currently in their list.</li>
-     *     <li>Given a logged-in user, when they input a task to delete through the console, then the system should remove the task from their to-do list and confirm the task has been deleted.</li>
-     * </ul>
-     *
-     * <h3>Other:</h3>
-     * <ul>
-     *     <li>When a user accesses the application, the interface should display a clear and concise menu with options to add a task, view tasks, delete a task, or log out, all accessible through the console.</li>
-     *     <li>The system should handle user input errors gracefully, providing clear feedback and prompting for correct input through the console.</li>
-     * </ul>
-     *
-     * <h3>Notes:</h3>
-     * <ul>
-     *     <li>No need to encrypt user password</li>
-     *     <li>Start the program menu inside main function below</li>
-     *     <li>Split each functionalities into its own classes</li>
-     *     <li>Please Use UUID if there's ID needed <a href="https://www.baeldung.com/java-uuid">Java UUID Reference</a></li>
-     *     <li>Data does not need to be stored in a File. Instead, store it inside a Map or List and let the data gone when program finished</li>
-     * </ul>
-     */
-    public static void main(String[] args) {
-        /*
-         Create menu functionalities
-         Split classes
-         Make methods
-         Connect all the functionalities with the related menu ;)
-         GL HF! ;)
-        */
-        Scanner scanner = new Scanner(System.in);
+class User {
+    private String username;
+    private String password;
+    private List<String> tasks;
+    private Date lastLogin;
 
-        Auth auth = new Auth();
-        Menu menu = new Menu(scanner, auth);
-        menu.authPrompt();
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+        this.tasks = new ArrayList<>();
+        this.lastLogin = null; // Set initially to null
+    }
 
-        scanner.close();
+    public String getUsername() {
+        return username;
+    }
+
+    public boolean authenticate(String password) {
+        return this.password.equals(password);
+    }
+
+    public void addTask(String task) {
+        tasks.add(task);
+        Collections.sort(tasks); // Sort tasks chronologically
+    }
+
+    public void deleteTask(int taskNumber) {
+        if (taskNumber >= 0 && taskNumber < tasks.size()) {
+            tasks.remove(taskNumber);
+            System.out.println("Task " + (taskNumber + 1) + " deleted successfully by " + username + ".");
+        } else {
+            System.out.println("Invalid task number.");
+        }
+    }
+
+    public List<String> getTasks() {
+        return tasks;
+    }
+
+    public void setLastLogin() {
+        this.lastLogin = new Date();
+    }
+
+    public Date getLastLogin() {
+        return lastLogin;
     }
 }
+
+public class ToDoListApp {
+    private Map<String, User> users;
+    private Scanner scanner;
+
+    public ToDoListApp() {
+        this.users = new HashMap<>();
+        this.scanner = new Scanner(System.in);
+    }
+
+    public boolean register() {
+        System.out.println("Enter username:");
+        String username = scanner.nextLine();
+        System.out.println("Enter password:");
+        String password = scanner.nextLine();
+
+        if (users.containsKey(username)) {
+            System.out.println("Username already exists. Please choose a different one.");
+            return false;
+        }
+        users.put(username, new User(username, password));
+        System.out.println("Account created successfully.");
+        return true;
+    }
+
+    public User login() {
+        System.out.println("Registered users:");
+        for (String username : users.keySet()) {
+            System.out.println("- " + username);
+        }
+        System.out.println("Enter username:");
+        String username = scanner.nextLine();
+        System.out.println("Enter password:");
+        String password = scanner.nextLine();
+
+        User user = users.get(username);
+        if (user != null && user.authenticate(password)) {
+            user.setLastLogin(); // Update last login time
+            return user;
+        }
+        System.out.println("Invalid username or password.");
+        return null;
+    }
+
+    public void addTask(User user) {
+        System.out.println(user.getUsername() + " is adding a task:");
+        System.out.println("Enter task:");
+        String task = scanner.nextLine();
+        user.addTask(task);
+        System.out.println("Task added successfully.");
+    }
+
+    public void viewTasks(User user) {
+        System.out.println(user.getUsername() + "'s tasks:");
+        List<String> tasks = user.getTasks();
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks found.");
+        } else {
+            System.out.println("Tasks:");
+            System.out.println("-------------------------------");
+            System.out.println("| No. | Task                |");
+            System.out.println("-------------------------------");
+            for (int i = 0; i < tasks.size(); i++) {
+                System.out.printf("| %-3d | %-20s |\n", (i + 1), tasks.get(i));
+            }
+            System.out.println("-------------------------------");
+        }
+    }
+
+    public void deleteTask(User user) {
+        System.out.println(user.getUsername() + " is deleting a task:");
+        List<String> tasks = user.getTasks();
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks to delete.");
+            return;
+        }
+
+        System.out.println("Enter task number to delete:");
+        int taskNumber = Integer.parseInt(scanner.nextLine()) - 1; // Adjusted for zero-based indexing
+        user.deleteTask(taskNumber);
+    }
+
+    public static void main(String[] args) {
+        ToDoListApp app = new ToDoListApp();
+
+        while (true) {
+            System.out.println("1. Register\n2. Login\n3. Exit");
+            int choice = Integer.parseInt(app.scanner.nextLine());
+
+            switch (choice) {
+                case 1:
+                    app.register();
+                    break;
+                case 2:
+                    User user = app.login();
+                    if (user != null) {
+                        System.out.println("Logged in successfully as " + user.getUsername() + ". Last login time: " + user.getLastLogin());
+                        while (true) {
+                            System.out.println("1. Add Task\n2. View Tasks\n3. Delete Task\n4. Logout");
+                            int taskChoice = Integer.parseInt(app.scanner.nextLine());
+                            switch (taskChoice) {
+                                case 1:
+                                    app.addTask(user);
+                                    break;
+                                case 2:
+                                    app.viewTasks(user);
+                                    break;
+                                case 3:
+                                    app.deleteTask(user);
+                                    break;
+                                case 4:
+                                    System.out.println("Logged out successfully.");
+                                    break;
+                                default:
+                                    System.out.println("Invalid choice.");
+                                    break;
+                            }
+                            if (taskChoice == 4) {
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                case 3:
+                    System.out.println("Exiting...");
+                    System.exit(0);
+                default:
+                    System.out.println("Invalid choice.");
+                    break;
+            }
+        }
+    }
+}
+
